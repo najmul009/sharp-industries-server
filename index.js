@@ -1,6 +1,7 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const app = express()
+const app = express();
+const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000
 const cors = require('cors')
 app.use(cors())
@@ -18,6 +19,8 @@ async function run() {
     try {
         await client.connect()
         const toolsCollection = client.db("sharp-db").collection("tools")
+        const orderCollection = client.db("sharp-db").collection("orders")
+        const userCollection = client.db("sharp-db").collection("users")
 
         // main route 
         app.get('/tools', async (req, res) => {
@@ -28,13 +31,37 @@ async function run() {
         })
 
 
+        
+
+        //add new user and create JWT
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await userCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN, { expiresIn: '24h' });
+            res.send({ result, token })
+        });
+
+
         // route for single product
         app.get('/tools/:id', async (req, res) => {
             const id = req.params.id;
             const query = {_id: ObjectId(id)}
             const result = await toolsCollection.findOne(query);
             res.send(result)
-        })
+        });
+
+        // add new order 
+        app.post('/order', async (req, res) => {
+            const order = req.body;
+            const result = await orderCollection.insertOne(order);
+            res.send({ success: true, result })
+        });
 
     }
     finally {
