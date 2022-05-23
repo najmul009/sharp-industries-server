@@ -19,12 +19,21 @@ async function run() {
         await client.connect()
         const toolsCollection = client.db("sharp-db").collection("tools")
 
-
+        // main route 
         app.get('/tools', async (req, res) => {
             const query = {}
             const cursor = toolsCollection.find(query)
             const items = await cursor.toArray()
             res.send(items)
+        })
+
+
+        // route for single product
+        app.get('/tools/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)}
+            const result = await toolsCollection.findOne(query);
+            res.send(result)
         })
 
     }
