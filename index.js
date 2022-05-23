@@ -13,7 +13,20 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
-
+function verifyJWT(req,res,next){
+    const accessToken = req.headers.authorization;
+    if(!accessToken){
+        return res.status(401).send({message:'UnAuthorized access'})
+    }
+    const token = accessToken.split(' ')[1];
+    jwt.verify(token,process.env.ACCESS_TOKEN,function(err,decoded){
+        if(err){
+            return res.status(403).send({message:'Forbidden access'})
+        }
+        req.decoded = decoded;
+        next()
+    })
+}
 
 async function run() {
     try {
@@ -48,6 +61,20 @@ async function run() {
         });
 
 
+        //admin check
+        app.get('/admin/:email',async(req,res)=>{
+            const email = req.params.email;
+            const filter = { email: email };
+            const isAdmin = await userCollection.find(filter).toArray();
+            if(isAdmin[0].role==='admin'){
+                res.send(isAdmin)
+            }
+            else{
+                res.status(403).send({message:'Forbidden access'})
+            }
+        });
+
+
         // route for single product
         app.get('/tools/:id', async (req, res) => {
             const id = req.params.id;
@@ -57,7 +84,7 @@ async function run() {
         });
 
         // add new order 
-        app.post('/order', async (req, res) => {
+        app.post('/order',verifyJWT, async (req, res) => {
             const order = req.body;
             const result = await orderCollection.insertOne(order);
             res.send({ success: true, result })
