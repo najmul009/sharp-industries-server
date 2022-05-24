@@ -7,6 +7,8 @@ const cors = require('cors')
 app.use(cors())
 app.use(express.json())
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.nirim.mongodb.net/?retryWrites=true&w=majority`;
@@ -34,6 +36,7 @@ async function run() {
         const toolsCollection = client.db("sharp-db").collection("tools")
         const orderCollection = client.db("sharp-db").collection("orders")
         const userCollection = client.db("sharp-db").collection("users")
+        const paymentCollection = client.db("sharp-db").collection("payments")
 
         // main route 
         app.get('/tools', async (req, res) => {
@@ -44,6 +47,20 @@ async function run() {
         })
 
 
+        //creating payment intent and secret key
+        app.post('/create-payment-intent', async (req, res) => {
+            const paymentData = req.body;
+            const price =paymentData.totalAmount;
+            const amount = price*100;        
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types:['card']
+            });         
+            res.send({
+              clientSecret: paymentIntent.client_secret,
+            });
+          });
         
 
         //add new user and create JWT
@@ -112,6 +129,32 @@ async function run() {
             const result = await orderCollection.deleteOne(filter);
             res.send(result)
         });
+
+
+        //get singel order details for payment
+        app.get('/order/:id',verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = {_id: ObjectId(id)}
+            const result = await orderCollection.findOne(query);
+            res.send(result)
+        });
+
+
+        //update payment info in order object
+        app.patch('/order/:id',verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const filter = {_id: ObjectId(id)}
+            const updateDoc = {
+                $set:{
+                    paid:true,
+                    transactionId: payment.transactionId
+                }
+            }
+            const updateOrder = await orderCollection.updateOne(filter,updateDoc);
+            const updatePayment = await paymentCollection.insertOne(payment)
+            res.send(updateOrder)
+        })
 
     }
     finally {
