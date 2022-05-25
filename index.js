@@ -154,7 +154,28 @@ async function run() {
             const updateOrder = await orderCollection.updateOne(filter,updateDoc);
             const updatePayment = await paymentCollection.insertOne(payment)
             res.send(updateOrder)
+        });
+
+
+        //get all orders list for admin
+        app.get('/orders', async (req, res) => {
+            const query = {}
+            const items = await orderCollection.find(query).toArray()
+            res.send(items)
         })
+
+        // update shiping info
+        app.patch('/shipp/:id',verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)}
+            const updateDoc = {
+                $set:{
+                    shippment:true,
+                }
+            }
+            const updateOrder = await orderCollection.updateOne(filter,updateDoc);
+            res.send(updateOrder)
+        });
 
     }
     finally {
