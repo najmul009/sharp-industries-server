@@ -177,6 +177,15 @@ async function run() {
             res.send(updateOrder)
         });
 
+
+        //deleteing product by admin
+        app.delete('/deletetool/:id',verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const filter = {_id: ObjectId(id)}
+            const result = await toolsCollection.deleteOne(filter);
+            res.send(result)
+        });
+
     }
     finally {
     }
