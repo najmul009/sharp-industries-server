@@ -65,7 +65,6 @@ async function run() {
 
         //get all reviews
         app.get('/reviews', async (req, res) => {
-            console.log('dfghj');
             const query = {}
             const items = await reviewCollection.find(query).toArray()
             res.send(items)
@@ -225,6 +224,13 @@ async function run() {
         app.post('/addreview',verifyJWT, async (req, res) => {
             const order = req.body;
             const result = await reviewCollection.insertOne(order);
+            res.send({ success: true, result })
+        });
+
+        // add new product  
+        app.post('/addproduct',verifyJWT, async (req, res) => {
+            const order = req.body;
+            const result = await toolsCollection.insertOne(order);
             res.send({ success: true, result })
         });
 
