@@ -37,15 +37,7 @@ async function run() {
         const orderCollection = client.db("sharp-db").collection("orders")
         const userCollection = client.db("sharp-db").collection("users")
         const paymentCollection = client.db("sharp-db").collection("payments")
-
-        // main route 
-        app.get('/tools', async (req, res) => {
-            const query = {}
-            const cursor = toolsCollection.find(query)
-            const items = await cursor.toArray()
-            res.send(items)
-        })
-
+        const reviewCollection = client.db("sharp-db").collection("reviews")
 
         //creating payment intent and secret key
         app.post('/create-payment-intent', async (req, res) => {
@@ -62,6 +54,22 @@ async function run() {
             });
           });
         
+
+        // main route 
+        app.get('/tools', async (req, res) => {
+            const query = {}
+            const items = await toolsCollection.find(query).toArray()
+            res.send(items)
+        })
+
+
+        //get all reviews
+        app.get('/reviews', async (req, res) => {
+            console.log('dfghj');
+            const query = {}
+            const items = await reviewCollection.find(query).toArray()
+            res.send(items)
+        })       
 
         //add new user and create JWT
         app.put('/user/:email', async (req, res) => {
@@ -211,6 +219,13 @@ async function run() {
             const filter = {email:email}
             const result = await userCollection.deleteOne(filter);
             res.send(result)
+        });
+
+        //add review for user
+        app.post('/addreview',verifyJWT, async (req, res) => {
+            const order = req.body;
+            const result = await reviewCollection.insertOne(order);
+            res.send({ success: true, result })
         });
 
     }
