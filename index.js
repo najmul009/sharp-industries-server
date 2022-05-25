@@ -186,6 +186,33 @@ async function run() {
             res.send(result)
         });
 
+
+        //get all user for admin
+        app.get('/allusers',verifyJWT, async (req,res)=>{
+            const allUsers = await userCollection.find().toArray();
+            res.send(allUsers);
+        });
+
+
+        //make admin a user --admin
+        app.put('/makeadmin/:email', verifyJWT,async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const updateDoc = {
+                $set: {role:'admin'},
+            };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send( result )
+        });
+
+        //delete user --- admin
+        app.delete('/deleteuser/:email',verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const filter = {email:email}
+            const result = await userCollection.deleteOne(filter);
+            res.send(result)
+        });
+
     }
     finally {
     }
