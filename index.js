@@ -39,6 +39,21 @@ async function run() {
         const paymentCollection = client.db("sharp-db").collection("payments")
         const reviewCollection = client.db("sharp-db").collection("reviews")
 
+
+
+        //verifyadmin function
+        const verifyAdmin =async( req,res,next)=>{
+            const requester = req.decoded.email;
+            const isAdmin = await userCollection.findOne({email:requester});
+            if(isAdmin.role === 'admin'){
+                next()
+            }else{
+                return res.status(401).send({message:'Forbidden access'})
+            }
+        }
+
+
+
         //creating payment intent and secret key
         app.post('/create-payment-intent', async (req, res) => {
             const paymentData = req.body;
@@ -165,14 +180,14 @@ async function run() {
 
 
         //get all orders list for admin
-        app.get('/orders', async (req, res) => {
+        app.get('/orders',verifyJWT,verifyAdmin, async (req, res) => {
             const query = {}
             const items = await orderCollection.find(query).toArray()
             res.send(items)
         })
 
         // update shiping info
-        app.patch('/shipp/:id',verifyJWT, async (req, res) => {
+        app.patch('/shipp/:id',verifyJWT,verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = {_id: ObjectId(id)}
             const updateDoc = {
@@ -186,7 +201,7 @@ async function run() {
 
 
         //deleteing product by admin
-        app.delete('/deletetool/:id',verifyJWT, async (req, res) => {
+        app.delete('/deletetool/:id',verifyJWT,verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = {_id: ObjectId(id)}
             const result = await toolsCollection.deleteOne(filter);
@@ -195,14 +210,14 @@ async function run() {
 
 
         //get all user for admin
-        app.get('/allusers',verifyJWT, async (req,res)=>{
+        app.get('/allusers',verifyJWT,verifyAdmin, async (req,res)=>{
             const allUsers = await userCollection.find().toArray();
             res.send(allUsers);
         });
 
 
         //make admin a user --admin
-        app.put('/makeadmin/:email', verifyJWT,async (req, res) => {
+        app.put('/makeadmin/:email', verifyJWT,verifyAdmin,async (req, res) => {
             const email = req.params.email;
             const filter = { email: email };
             const updateDoc = {
@@ -213,7 +228,7 @@ async function run() {
         });
 
         //delete user --- admin
-        app.delete('/deleteuser/:email',verifyJWT, async (req, res) => {
+        app.delete('/deleteuser/:email',verifyJWT,verifyAdmin, async (req, res) => {
             const email = req.params.email;
             const filter = {email:email}
             const result = await userCollection.deleteOne(filter);
@@ -228,7 +243,7 @@ async function run() {
         });
 
         // add new product  
-        app.post('/addproduct',verifyJWT, async (req, res) => {
+        app.post('/addproduct',verifyJWT,verifyAdmin, async (req, res) => {
             const order = req.body;
             const result = await toolsCollection.insertOne(order);
             res.send({ success: true, result })
